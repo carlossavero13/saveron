@@ -1,11 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Bell, ArrowUpRight, ArrowDownRight, Home, PieChart, Settings, QrCode, CreditCard, Send, Download, CheckCircle2, X, Wallet, ArrowRightLeft, Cpu
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { CreditCard, Wallet, ArrowDownRight, ArrowUpRight, TrendingUp, Filter, AlertCircle, X, Search, ChevronRight, CheckCircle, Smartphone, CheckCircle2, ArrowRightLeft, Home, PieChart, Repeat, Plus, Bell, Send, Download, QrCode, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Utilidad para estilos de tarjeta realistas
 const getCardStyle = (name: string) => {
@@ -28,10 +26,11 @@ const getCardStyle = (name: string) => {
   return { bg: "bg-gradient-to-br from-gray-700 to-gray-900", text: "text-white", short: "CARD", title: n, digits: "•••• 0000", cierre: null, pago: null, linea: null };
 };
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("home");
+export default function MobileDashboard() {
+  const [activeTab, setActiveTab] = useState<'home' | 'analytics' | 'subscriptions'>('home');
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtro de tarjeta
@@ -252,6 +251,9 @@ export default function Dashboard() {
 
       <main className="px-5 py-6 max-w-md mx-auto lg:max-w-4xl space-y-6 relative z-10">
         
+        {activeTab === 'home' && (
+          <>
+        
         {/* Tarjeta de Liquidez */}
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center py-8 bg-white/5 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
@@ -458,27 +460,92 @@ export default function Dashboard() {
           </div>
         </motion.section>
 
+          </>
+        )}
+
+        {/* --- PESTAÑA: ANÁLISIS --- */}
+        {activeTab === 'analytics' && (
+          <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
+            <h2 className="text-2xl font-black text-white px-2">Análisis de este mes</h2>
+            
+            <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg flex flex-col items-center justify-center py-10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-5">
+                <PieChart className="w-40 h-40" />
+              </div>
+              <span className="text-sm font-bold text-white/50 tracking-widest uppercase mb-2">Gastos Totales</span>
+              <h3 className="text-5xl font-black text-white tracking-tighter">
+                S/ {transactions.filter(tx => tx.type === 'out').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString('es-PE', {minimumFractionDigits: 2})}
+              </h3>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg">
+               <h3 className="text-sm font-bold text-white/50 tracking-widest uppercase mb-4">Por Tarjeta</h3>
+               <div className="space-y-4">
+                  {accounts.filter(a => a.type === 'credito').map(acc => {
+                    const spent = transactions.filter(tx => tx.account_id === acc.id && tx.type === 'out').reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+                    const percent = Math.min(100, (spent / (getCardStyle(acc.name).linea || 1)) * 100);
+                    if (spent === 0) return null;
+                    return (
+                      <div key={acc.id} className="flex flex-col gap-2">
+                        <div className="flex justify-between items-end">
+                           <span className="font-bold text-sm text-white/90">{getCardStyle(acc.name).title}</span>
+                           <span className="font-mono text-sm text-white">S/ {spent.toLocaleString('es-PE')}</span>
+                        </div>
+                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                           <div className="h-full bg-[#1DB954] rounded-full" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    )
+                  })}
+               </div>
+            </div>
+          </motion.section>
+        )}
+
+        {/* --- PESTAÑA: SUSCRIPCIONES --- */}
+        {activeTab === 'subscriptions' && (
+          <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
+            <div className="flex justify-between items-center px-2">
+               <h2 className="text-2xl font-black text-white">Suscripciones</h2>
+               <button onClick={() => alert('Próximamente: Modal para crear suscripción')} className="w-10 h-10 bg-[#1DB954]/20 text-[#1DB954] rounded-full flex items-center justify-center">
+                  <Plus className="w-6 h-6" />
+               </button>
+            </div>
+            
+            <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg text-center py-12">
+               <Repeat className="w-16 h-16 mx-auto text-white/20 mb-4" />
+               <h3 className="text-lg font-bold text-white mb-2">No hay suscripciones aún</h3>
+               <p className="text-sm text-white/50 max-w-[250px] mx-auto">
+                 Crea la tabla en Supabase y luego podrás agregar tus pagos recurrentes aquí.
+               </p>
+            </div>
+          </motion.section>
+        )}
+
       </main>
 
       {/* Dock Inferior */}
-      <nav className="fixed bottom-0 w-full bg-[#0a0a0a]/60 backdrop-blur-[40px] border-t border-white/10 px-6 pb-safe pt-3 lg:hidden z-50 flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <button className="flex flex-col items-center gap-1.5 text-[#1DB954]">
-          <Home className="w-6 h-6 drop-shadow-md" />
+      <nav className="fixed bottom-0 w-full bg-[#0a0a0a]/80 backdrop-blur-[40px] border-t border-white/10 px-6 pb-safe pt-3 z-50 flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'home' ? 'text-[#1DB954]' : 'text-white/40'}`}>
+          <Home className={`w-6 h-6 ${activeTab === 'home' ? 'drop-shadow-md' : ''}`} />
           <span className="text-[10px] font-bold">Inicio</span>
         </button>
-        <button className="flex flex-col items-center gap-1.5 text-white/40">
+        <button onClick={() => setActiveTab('analytics')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'analytics' ? 'text-[#1DB954]' : 'text-white/40'}`}>
           <PieChart className="w-6 h-6" />
+          <span className="text-[10px] font-bold">Análisis</span>
         </button>
         <div className="relative -top-6">
           <button onClick={() => setManualModal('out')} className="w-16 h-16 bg-[#1DB954] hover:bg-[#1ed760] rounded-2xl rotate-3 flex items-center justify-center text-[#0a0a0a] transform hover:scale-105 hover:rotate-6 transition-all shadow-[0_10px_30px_rgba(29,185,84,0.4)] border border-[#1DB954]/50">
             <QrCode className="w-8 h-8 -rotate-3" />
           </button>
         </div>
-        <button className="flex flex-col items-center gap-1.5 text-white/40">
-          <CreditCard className="w-6 h-6" />
+        <button onClick={() => setActiveTab('subscriptions')} className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'subscriptions' ? 'text-[#1DB954]' : 'text-white/40'}`}>
+          <Repeat className="w-6 h-6" />
+          <span className="text-[10px] font-bold">Pagos</span>
         </button>
         <button className="flex flex-col items-center gap-1.5 text-white/40">
           <Settings className="w-6 h-6" />
+          <span className="text-[10px] font-bold">Ajustes</span>
         </button>
       </nav>
 
