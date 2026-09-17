@@ -71,9 +71,10 @@ export async function POST(req: Request) {
 
     // 4. Actualizar el saldo de la tarjeta afectada
     if (!insertError) {
-      const { data: acc } = await supabase.from('accounts').select('balance').eq('id', account_id).single();
+      const { data: acc } = await supabase.from('accounts').select('balance, type').eq('id', account_id).single();
       if (acc) {
-        const newBalance = Number(acc.balance) + (transactionData.type === 'out' ? -transactionData.amount : transactionData.amount);
+        const delta = transactionData.type === 'out' ? -transactionData.amount : transactionData.amount;
+        const newBalance = Number(acc.balance) + (acc.type === 'credito' ? -delta : delta);
         await supabase.from('accounts').update({ balance: newBalance }).eq('id', account_id);
       }
     }

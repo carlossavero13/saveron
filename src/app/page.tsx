@@ -99,7 +99,8 @@ export default function Dashboard() {
     }]);
 
     const acc = accounts.find(a => a.id === manualSelectedAccount);
-    const newBalance = Number(acc.balance) + (type === 'in' ? amount : -amount);
+    const delta = type === 'in' ? amount : -amount;
+    const newBalance = Number(acc.balance) + (acc.type === 'credito' ? -delta : delta);
     await supabase.from('accounts').update({ balance: newBalance }).eq('id', manualSelectedAccount);
 
     setManualModal(null);
