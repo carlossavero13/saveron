@@ -72,6 +72,87 @@ export default function Dashboard() {
   const creditDebt = accounts.filter(a => a.type === 'credito').reduce((sum, a) => sum + Number(Math.abs(a.balance)), 0);
   const netLiquidity = debitBalance - creditDebt;
 
+  // Lógica del Consejo del Día (Carrusel)
+  const tips: any[] = [];
+  
+  if (accounts.length > 0) {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    const cardStats: any[] = [];
+
+    accounts.forEach(acc => {
+      if (acc.type !== 'credito') return;
+      const style = getCardStyle(acc.name);
+      if (!style.cierre || !style.pago) return;
+
+      let nextCloseDate = new Date(currentYear, currentMonth, style.cierre);
+      if (currentDay > style.cierre) {
+        nextCloseDate = new Date(currentYear, currentMonth + 1, style.cierre);
+      }
+
+      const daysToClose = Math.ceil((nextCloseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let payMonth = nextCloseDate.getMonth() + 1;
+      let payYear = nextCloseDate.getFullYear();
+      if (payMonth > 11) { payMonth = 0; payYear++; }
+      const paymentDate = new Date(payYear, payMonth, style.pago);
+      
+      cardStats.push({ style, daysToClose, paymentDate });
+    });
+
+    // Ordenar de mejor (más días) a peor (menos días)
+    cardStats.sort((a, b) => b.daysToClose - a.daysToClose);
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    if (cardStats.length > 0) {
+      const best = cardStats[0];
+      tips.push({
+        id: 'tip-1',
+        type: 'best',
+        badge: 'Top 1: Mayor tiempo',
+        cardTitle: best.style.title,
+        color: 'text-[#1DB954]',
+        bg: 'from-[#1DB954]/20 to-[#0f3b20]/40',
+        border: 'border-[#1DB954]/30',
+        message1: `Hoy te conviene comprar con tu <strong class="text-[#1DB954] font-black">${best.style.title}</strong> porque facturarás a máximo plazo.`,
+        message2: `¡Si compras hoy, no tendrás que pagarlo sino hasta el <strong class="text-white">${best.style.pago} de ${months[best.paymentDate.getMonth()]}</strong>!`
+      });
+      
+      if (cardStats.length > 1) {
+        const second = cardStats[1];
+        tips.push({
+          id: 'tip-2',
+          type: 'good',
+          badge: 'Top 2: Alternativa',
+          cardTitle: second.style.title,
+          color: 'text-[#3b82f6]',
+          bg: 'from-[#3b82f6]/20 to-[#1e3a8a]/40',
+          border: 'border-[#3b82f6]/30',
+          message1: `Otra excelente opción es usar tu <strong class="text-[#3b82f6] font-black">${second.style.title}</strong>.`,
+          message2: `El cierre será en ${second.daysToClose} días y pagarás recién el <strong class="text-white">${second.style.pago} de ${months[second.paymentDate.getMonth()]}</strong>.`
+        });
+      }
+
+      const worst = cardStats[cardStats.length - 1];
+      if (worst && worst.daysToClose <= 7) {
+        tips.push({
+          id: 'tip-3',
+          type: 'warning',
+          badge: 'Alerta de Cierre',
+          cardTitle: worst.style.title,
+          color: 'text-[#ef4444]',
+          bg: 'from-[#ef4444]/20 to-[#7f1d1d]/40',
+          border: 'border-[#ef4444]/30',
+          message1: `¡Cuidado! Evita hacer compras fuertes hoy con tu <strong class="text-[#ef4444] font-black">${worst.style.title}</strong>.`,
+          message2: `Faltan solo ${worst.daysToClose} días para su cierre y tendrías que pagarlo muy pronto.`
+        });
+      }
+    }
+  }
+
   const handleNumpad = (num: string) => {
     if (manualAmount === '0' && num !== '.') setManualAmount(num);
     else if (manualAmount.includes('.') && num === '.') return;
@@ -216,7 +297,7 @@ export default function Dashboard() {
             )}
           </div>
           
-          <div className="flex gap-4 overflow-x-auto pb-6 pt-2 px-1 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex gap-4 overflow-x-auto pb-6 pt-2 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {loading ? (
               <p className="text-white/50 text-sm px-2">Cargando tus tarjetas...</p>
             ) : (
@@ -304,6 +385,28 @@ export default function Dashboard() {
             )}
           </div>
         </motion.section>
+
+        {/* Consejos del Día Carrusel */}
+        {tips.length > 0 && (
+          <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="w-full mt-2">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {tips.map(tip => (
+                <div key={tip.id} className={`snap-center shrink-0 w-[300px] bg-gradient-to-r ${tip.bg} backdrop-blur-xl border ${tip.border} rounded-3xl p-5 shadow-lg relative overflow-hidden`}>
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <CreditCard className="w-24 h-24 rotate-12" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${tip.color}`}>{tip.badge}</span>
+                    </div>
+                    <h3 className="text-white font-medium text-sm mb-2 leading-relaxed" dangerouslySetInnerHTML={{__html: tip.message1}}></h3>
+                    <p className="text-white/70 text-xs" dangerouslySetInnerHTML={{__html: tip.message2}}></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Movimientos Filtrados */}
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-2 bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg">
