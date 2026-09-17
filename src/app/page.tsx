@@ -233,7 +233,7 @@ export default function Dashboard() {
                     <div 
                       onClick={() => setFilterCardId(prev => prev === account.id ? null : account.id)}
                       className={`
-                        w-[300px] h-[190px] rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-2xl transition-all cursor-pointer border border-white/10
+                        w-[300px] h-[200px] rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-2xl transition-all cursor-pointer border border-white/10
                         ${style.bg} ${style.text}
                         ${isSelected ? 'ring-2 ring-white/60 scale-105 shadow-[0_10px_40px_rgba(255,255,255,0.2)]' : 'opacity-90 hover:opacity-100'}
                       `}
@@ -253,13 +253,26 @@ export default function Dashboard() {
                       </div>
 
                       {/* Montos */}
-                      <div className="z-10 mt-2">
+                      <div className="z-10 mt-1">
                         <p className="text-[10px] font-medium opacity-70 uppercase tracking-widest">
                           {isDebit ? 'Saldo Disponible' : 'Deuda Actual'}
                         </p>
                         <h4 className="text-3xl font-black drop-shadow-md">
                           S/ {isDebit ? saldoDisponible.toLocaleString('es-PE', {minimumFractionDigits: 2}) : debtAmount.toLocaleString('es-PE', {minimumFractionDigits: 2})}
                         </h4>
+                        
+                        {!isDebit && style.linea && (
+                          <div className="flex gap-4 mt-1.5 opacity-90">
+                            <div className="flex flex-col">
+                              <span className="text-[7px] uppercase tracking-widest opacity-80">Disponible</span>
+                              <span className="text-xs font-bold text-[#1DB954] drop-shadow-sm">S/ {saldoDisponible.toLocaleString('es-PE', {minimumFractionDigits: 2})}</span>
+                            </div>
+                            <div className="flex flex-col border-l border-white/20 pl-4">
+                              <span className="text-[7px] uppercase tracking-widest opacity-80">Línea Total</span>
+                              <span className="text-xs font-bold">S/ {style.linea.toLocaleString('es-PE')}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Footer de la tarjeta */}
