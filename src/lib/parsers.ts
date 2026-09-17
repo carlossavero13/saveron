@@ -67,17 +67,22 @@ export function parseBankEmail(from: string, subject: string, bodyText: string):
     }
   }
 
-  // 4. Patrón Sip! (Basado en correo real)
+  // 4. Patrn Sip! (Basado en correo real)
   // Ej: "Establecimiento: TOULON Monto: S/. 3.40"
-  const sipRegex = /Establecimiento:\s*(.+?)\s*Monto:\s*(S\/\.|US\$)\s*([\d,.]+)/i;
+  const sipRegex = /Establecimiento:[\s\S]*?([A-Za-z0-9\s\.\-\*\_]+)[\s\S]*?Monto:[\s\S]*?(?:S\/\.|US\$)?[\s\S]*?([\d,]+\.\d{2})/i;
   const sipMatch = text.match(sipRegex);
 
   if (sipMatch || from.toLowerCase().includes('sip.pe') || subject.toLowerCase().includes('sip')) {
     if (sipMatch) {
-        const description = sipMatch[1].trim();
-        const currency = sipMatch[2].includes('S/') ? 'PEN' : 'USD';
-        const amount = parseFloat(sipMatch[3].replace(/,/g, ''));
+        const description = sipMatch[1].trim().replace(/\s+Monto/i, '').trim();
+        const currency = text.includes('US$') ? 'USD' : 'PEN';
+        const amount = parseFloat(sipMatch[2].replace(/,/g, ''));
         return { amount, description, type: 'out', currency, bank: 'Sip!' };
+    }
+    // Si no hizo match perfecto pero sabemos que es Sip, forzamos la extraccin
+    const fallbackMontoMatch = text.match(/([\d,]+\.\d{2})/);
+    if (fallbackMontoMatch) {
+        return { amount: parseFloat(fallbackMontoMatch[1].replace(/,/g, '')), description: 'Compra Sip!', type: 'out', currency: 'PEN', bank: 'Sip!' };
     }
   }
 
