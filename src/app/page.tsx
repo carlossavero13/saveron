@@ -235,9 +235,9 @@ export default function MobileDashboard() {
 
       <header className="px-5 pt-12 pb-4 flex justify-between items-center sticky top-0 z-50 bg-white/5 backdrop-blur-2xl border-b border-white/5">
         <div className="flex items-center gap-3">
-          <motion.div whileTap={{ scale: 0.9 }} className="w-11 h-11 rounded-full bg-[#1DB954] flex items-center justify-center shadow-[0_0_20px_rgba(29,185,84,0.3)]">
-            <span className="text-[#0a0a0a] font-black text-lg tracking-tighter">SV</span>
-          </motion.div>
+          <button onClick={() => setActiveTab('home')} className="w-10 h-10 rounded-full bg-[#1DB954] text-black font-black flex items-center justify-center text-lg hover:scale-105 transition-transform shadow-[0_0_20px_rgba(29,185,84,0.3)]">
+            SV
+          </button>
           <div>
             <p className="text-xs text-white/60 font-medium tracking-wide uppercase">Hola,</p>
             <h1 className="text-lg font-bold tracking-tight text-white drop-shadow-md">Savero</h1>
@@ -466,7 +466,12 @@ export default function MobileDashboard() {
         {/* --- PESTAÑA: ANÁLISIS --- */}
         {activeTab === 'analytics' && (
           <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-            <h2 className="text-2xl font-black text-white px-2">Análisis de este mes</h2>
+            <div className="flex items-center gap-3 px-2">
+              <button onClick={() => setActiveTab('home')} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                <ChevronRight className="w-5 h-5 rotate-180" />
+              </button>
+              <h2 className="text-2xl font-black text-white">Análisis</h2>
+            </div>
             
             <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg flex flex-col items-center justify-center py-10 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-5">
@@ -506,7 +511,12 @@ export default function MobileDashboard() {
         {activeTab === 'subscriptions' && (
           <motion.section initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
             <div className="flex justify-between items-center px-2">
-               <h2 className="text-2xl font-black text-white">Suscripciones</h2>
+               <div className="flex items-center gap-3">
+                 <button onClick={() => setActiveTab('home')} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                   <ChevronRight className="w-5 h-5 rotate-180" />
+                 </button>
+                 <h2 className="text-2xl font-black text-white">Suscripciones</h2>
+               </div>
                <button onClick={() => alert('Próximamente: Modal para crear suscripción')} className="w-10 h-10 bg-[#1DB954]/20 text-[#1DB954] rounded-full flex items-center justify-center">
                   <Plus className="w-6 h-6" />
                </button>
