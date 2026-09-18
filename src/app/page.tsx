@@ -232,6 +232,29 @@ export default function MobileDashboard() {
   );
 
   const filteredTransactions = filterCardId ? transactions.filter(tx => tx.account_id === filterCardId) : transactions;
+  const handleDeleteTx = async () => {
+    if (!selectedTx) return;
+    if (!confirm('¿Estás seguro de eliminar este movimiento? Se restaurará el saldo.')) return;
+    setIsProcessing(true);
+    
+    const acc = accounts.find(a => a.id === selectedTx.account_id);
+    if (acc) {
+      let balanceChange = 0;
+      const isCredito = acc.type === 'credito';
+      const amount = Math.abs(selectedTx.amount);
+      if (selectedTx.type === 'out') {
+        balanceChange = isCredito ? -amount : amount;
+      } else {
+        balanceChange = isCredito ? amount : -amount;
+      }
+      await supabase.from('accounts').update({ balance: Number(acc.balance) + balanceChange }).eq('id', acc.id);
+    }
+
+    await supabase.from('transactions').delete().eq('id', selectedTx.id);
+    setSelectedTx(null);
+    setIsProcessing(false);
+  };
+
   const handleSaveSubscription = async () => {
     if (!subForm.name || !subForm.amount || !subForm.billing_day || !subForm.account_id) return;
     setIsProcessing(true);
@@ -666,9 +689,14 @@ export default function MobileDashboard() {
                 </div>
               </div>
               
-              <button onClick={() => setSelectedTx(null)} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-white font-bold transition-colors">
-                Cerrar
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setSelectedTx(null)} className="flex-1 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-white font-bold transition-colors">
+                  Cerrar
+                </button>
+                <button onClick={handleDeleteTx} disabled={isProcessing} className="flex-1 py-4 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-2xl font-bold transition-colors border border-red-500/20">
+                  {isProcessing ? "Borrando..." : "Eliminar"}
+                </button>
+              </div>
             </motion.div>
           </>
         )}
