@@ -41,6 +41,7 @@ export default function MobileDashboard() {
   const [paymentAccount, setPaymentAccount] = useState<any>(null);
   const [manualModal, setManualModal] = useState<'in'|'out'|null>(null);
   const [subModal, setSubModal] = useState(false);
+  const [cardDetailModal, setCardDetailModal] = useState<any>(null);
   const [subForm, setSubForm] = useState({ name: '', amount: '', billing_day: '', account_id: '' });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -388,18 +389,30 @@ export default function MobileDashboard() {
                       </div>
                     </div>
 
-                    {/* Botón de Pagar (Fuera de la tarjeta para no interferir con el click de filtro) */}
-                    {!isDebit && debtAmount > 0 && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setPaymentAccount(account); }} 
-                        className={`
-                          mt-3 flex items-center justify-center gap-1.5 w-[280px] bg-white/5 border border-white/10 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-lg backdrop-blur-md
-                          hover:bg-[#1DB954] hover:text-black hover:border-[#1DB954]
-                          ${isSelected ? 'opacity-100' : 'opacity-80'}
-                        `}
-                      >
-                        <Wallet className="w-4 h-4"/> Pagar Deuda de S/ {debtAmount.toLocaleString('es-PE', {minimumFractionDigits: 2})}
-                      </button>
+                    {/* Botones de acción para tarjeta de crédito */}
+                    {account.type === 'credito' && (
+                      <div className="flex gap-2 mt-3 w-[290px]">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setPaymentAccount(account); }} 
+                          className={`
+                            flex-1 flex items-center justify-center gap-1.5 bg-white/5 border border-white/10 text-white text-[10px] font-bold py-2.5 rounded-xl transition shadow-lg backdrop-blur-md
+                            hover:bg-[#1DB954] hover:text-black hover:border-[#1DB954]
+                            ${isSelected ? 'opacity-100' : 'opacity-80'}
+                          `}
+                        >
+                          <Wallet className="w-3.5 h-3.5"/> Pagar S/ {debtAmount.toLocaleString('es-PE', {minimumFractionDigits: 2})}
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setCardDetailModal(account); }} 
+                          className={`
+                            flex-1 flex items-center justify-center gap-1.5 bg-white/5 border border-white/10 text-white text-[10px] font-bold py-2.5 rounded-xl transition shadow-lg backdrop-blur-md
+                            hover:bg-white/20
+                            ${isSelected ? 'opacity-100' : 'opacity-80'}
+                          `}
+                        >
+                          <Settings className="w-3.5 h-3.5"/> Estado de Cta.
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -741,6 +754,76 @@ export default function MobileDashboard() {
               >
                 {isProcessing ? "Guardando..." : (manualModal === 'in' ? 'Recibir' : 'Pagar')}
               </button>
+            </motion.div>
+          </>
+        )}
+
+        {/* MODAL: ESTADO DE CUENTA */}
+        {cardDetailModal && (
+          <>
+            <Backdrop onClick={() => setCardDetailModal(null)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="fixed bottom-0 inset-x-0 bg-[#121212] rounded-t-[32px] p-6 z-[101] shadow-[0_-10px_50px_rgba(0,0,0,0.5)] border-t border-white/10 flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                <button onClick={() => setCardDetailModal(null)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+                <h3 className="font-bold text-white text-lg">Estado de Cuenta</h3>
+                <div className="w-9"></div>
+              </div>
+
+              {(() => {
+                const cStyle = getCardStyle(cardDetailModal.name);
+                const debt = Math.abs(cardDetailModal.balance);
+                const today = new Date().getDate();
+                
+                let daysToCierre = cStyle.cierre ? (cStyle.cierre - today) : 0;
+                if (daysToCierre < 0) daysToCierre += 30; // Approx next month
+
+                const desgravamen = debt > 0 ? 7.90 : 0.00;
+                const totalMonto = debt + desgravamen;
+
+                return (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                      <div className={`w-12 h-12 rounded-xl ${cStyle.bg} flex items-center justify-center font-black ${cStyle.text}`}>
+                        {cStyle.short}
+                      </div>
+                      <div>
+                        <p className="font-bold text-white text-lg">{cStyle.title}</p>
+                        <p className="text-xs text-white/50">{cStyle.digits}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                      <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                        <span className="text-sm text-white/70">Deuda Consumos</span>
+                        <span className="font-bold text-white">S/ {debt.toFixed(2)}</span>
+                      </div>
+                      <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                        <span className="text-sm text-white/70">Seguro Desgravamen</span>
+                        <span className="font-bold text-white">S/ {desgravamen.toFixed(2)}</span>
+                      </div>
+                      <div className="p-4 bg-white/10 flex justify-between items-center">
+                        <span className="font-bold text-white">Deuda Total Estimada</span>
+                        <span className="font-black text-[#1DB954] text-lg">S/ {totalMonto.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                        <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mb-1">Cierre de Ciclo</p>
+                        <p className="font-bold text-white text-lg">Día {cStyle.cierre}</p>
+                        <p className={`text-xs mt-1 font-bold ${daysToCierre <= 5 ? 'text-red-400' : 'text-[#1DB954]'}`}>
+                          {daysToCierre === 0 ? '¡Hoy!' : `En ${daysToCierre} días`}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                        <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mb-1">Último día de Pago</p>
+                        <p className="font-bold text-white text-lg">Día {cStyle.pago}</p>
+                        <p className="text-xs text-white/50 mt-1">del prox. mes</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           </>
         )}
