@@ -59,12 +59,15 @@ export function parseBankEmail(from: string, subject: string, bodyText: string):
     const empresaMatch = text.match(/Empresa:\s*(.*?)(?:Servicio:|Titular)/i);
     const description = empresaMatch ? empresaMatch[1].trim() : 'Pago de Servicio BCP';
     
-    // Tratamos de buscar Importe o Monto
-    const montoMatch = text.match(/(?:Importe|Monto)[\s:]*(S\/|US\$)\s*([\d,.]+)/i);
+    // Tratamos de buscar Importe o Monto o Total
+    const montoMatch = text.match(/(?:Importe|Monto|Total)[\s\w\.:]*?(S\/|US\$)\s*([\d,.]+)/i) || text.match(/(S\/|US\$)\s*([\d,.]+)/i);
     if (montoMatch) {
       const currency = montoMatch[1] === 'S/' ? 'PEN' : 'USD';
       const amount = parseFloat(montoMatch[2].replace(/,/g, ''));
       return { amount, description, type: 'out', currency, bank: 'BCP' };
+    } else {
+      // Fallback si no encuentra el monto exacto, al menos registra la transacción en 0 para que el usuario la vea
+      return { amount: 0.01, description, type: 'out', currency: 'PEN', bank: 'BCP' };
     }
   }
 

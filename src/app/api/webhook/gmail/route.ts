@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       else if (transactionData.bank === 'Ripley') searchName = '%Ripley%';
       else if (transactionData.bank === 'Sip!') searchName = '%Sip%';
       else if (transactionData.bank === 'BCP') {
-        if (textLower.includes('débito')) searchName = '%Sueldo%';
+        if (textLower.includes('débito') || textLower.includes('debito') || textLower.includes('dbito')) searchName = '%Sueldo%';
         else searchName = '%VISA%'; // Asumimos VISA si es crédito y no fue AMEX
       }
 
