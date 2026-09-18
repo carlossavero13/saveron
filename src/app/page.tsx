@@ -40,6 +40,7 @@ export default function MobileDashboard() {
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [paymentAccount, setPaymentAccount] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [deductFromSueldo, setDeductFromSueldo] = useState(false);
   const [manualModal, setManualModal] = useState<'in'|'out'|null>(null);
   const [subModal, setSubModal] = useState(false);
   const [cardDetailModal, setCardDetailModal] = useState<any>(null);
@@ -212,15 +213,17 @@ export default function MobileDashboard() {
     const debtToPay = Number(paymentAmount);
     if (debtToPay <= 0) return;
 
-    await supabase.from('transactions').insert([{
-      account_id: sueldoAccount.id, amount: -debtToPay, type: 'out', description: `Pago de Tarjeta ${getCardStyle(paymentAccount.name).title}`, category: 'Transferencia'
-    }]);
+    if (deductFromSueldo) {
+      await supabase.from('transactions').insert([{
+        account_id: sueldoAccount.id, amount: -debtToPay, type: 'out', description: `Pago de Tarjeta ${getCardStyle(paymentAccount.name).title}`, category: 'Transferencia'
+      }]);
+      await supabase.from('accounts').update({ balance: Number(sueldoAccount.balance) - debtToPay }).eq('id', sueldoAccount.id);
+    }
 
     await supabase.from('transactions').insert([{
-      account_id: paymentAccount.id, amount: debtToPay, type: 'in', description: `Pago recibido desde Cuenta Sueldo`, category: 'Pago'
+      account_id: paymentAccount.id, amount: debtToPay, type: 'in', description: deductFromSueldo ? `Pago recibido desde Cuenta Sueldo` : `Pago manual externo`, category: 'Pago'
     }]);
 
-    await supabase.from('accounts').update({ balance: Number(sueldoAccount.balance) - debtToPay }).eq('id', sueldoAccount.id);
     await supabase.from('accounts').update({ balance: Number(paymentAccount.balance) - debtToPay }).eq('id', paymentAccount.id);
 
     setPaymentAccount(null);
@@ -711,18 +714,30 @@ export default function MobileDashboard() {
               <p className="text-white/50 text-sm text-center mb-8">Estás a punto de transferir dinero desde tu Cuenta Sueldo para saldar la deuda.</p>
               
               <div className="flex items-center justify-center gap-4 mb-8">
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-2"><Wallet className="w-6 h-6"/></div>
-                  <span className="text-[10px] text-white/60">Sueldo</span>
-                </div>
-                <ArrowRightLeft className="w-6 h-6 text-white/30" />
+                {deductFromSueldo ? (
+                  <>
+                    <div className="flex flex-col items-center">
+                      <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-full flex items-center justify-center mb-2"><Wallet className="w-6 h-6"/></div>
+                      <span className="text-[10px] text-white/60">Sueldo</span>
+                    </div>
+                    <ArrowRightLeft className="w-6 h-6 text-white/30" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-col items-center">
+                      <div className="w-12 h-12 bg-white/5 text-white/40 rounded-full flex items-center justify-center mb-2"><Wallet className="w-6 h-6"/></div>
+                      <span className="text-[10px] text-white/40">Externo</span>
+                    </div>
+                    <ArrowRightLeft className="w-6 h-6 text-white/20" />
+                  </>
+                )}
                 <div className="flex flex-col items-center">
                   <div className={`w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center mb-2`}><CreditCard className="w-6 h-6"/></div>
                   <span className="text-[10px] text-white/60">{getCardStyle(paymentAccount.name).short}</span>
                 </div>
               </div>
 
-              <div className="mb-8">
+              <div className="mb-6">
                 <span className="text-sm text-white/50 text-center block mb-3">Deuda Total: S/ {Math.abs(paymentAccount.balance).toLocaleString('es-PE', {minimumFractionDigits: 2})}</span>
                 <div className="relative max-w-[250px] mx-auto">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 text-2xl font-bold">S/</span>
@@ -734,6 +749,14 @@ export default function MobileDashboard() {
                   />
                 </div>
               </div>
+
+              <label className="flex items-center justify-center gap-3 mb-8 cursor-pointer group">
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-colors ${deductFromSueldo ? 'bg-[#1DB954] border-[#1DB954]' : 'bg-white/5 border-white/20'}`}>
+                  {deductFromSueldo && <CheckCircle className="w-4 h-4 text-black" />}
+                </div>
+                <input type="checkbox" className="hidden" checked={deductFromSueldo} onChange={(e) => setDeductFromSueldo(e.target.checked)} />
+                <span className="text-sm text-white/80 group-hover:text-white transition-colors">Descontar de mi Cuenta Sueldo</span>
+              </label>
 
               <button onClick={handlePayCard} disabled={isProcessing} className="w-full py-4 bg-[#1DB954] hover:bg-[#1ed760] text-[#0a0a0a] rounded-2xl font-black transition-colors flex justify-center items-center gap-2 text-lg">
                 {isProcessing ? "Procesando..." : "Confirmar Pago"}
