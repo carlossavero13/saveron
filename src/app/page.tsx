@@ -26,6 +26,25 @@ const getCardStyle = (name: string) => {
   return { bg: "bg-gradient-to-br from-gray-700 to-gray-900", text: "text-white", short: "CARD", title: n, digits: "•••• 0000", cierre: null, pago: null, linea: null, tagBg: "bg-white/10", tagText: "text-white/70" };
 };
 
+const getCategory = (desc: string) => {
+  const d = (desc || '').toLowerCase();
+  if (d.includes('tottus') || d.includes('plaza vea') || d.includes('wong')) return 'Supermercado';
+  if (d.includes('yape') || d.includes('plin')) return 'Transferencias';
+  if (d.includes('financiera oh') || d.includes('pago de tarjeta')) return 'Pagos Financieros';
+  if (d.includes('netflix') || d.includes('spotify') || d.includes('amazon')) return 'Suscripciones';
+  if (d.includes('toulon') || d.includes('starbucks') || d.includes('kfc') || d.includes('bembos') || d.includes('pizza')) return 'Comida & Antojos';
+  return 'Otros';
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  'Supermercado': '#1DB954',
+  'Transferencias': '#F59E0B',
+  'Pagos Financieros': '#3B82F6',
+  'Suscripciones': '#EC4899',
+  'Comida & Antojos': '#EF4444',
+  'Otros': '#8B5CF6'
+};
+
 export default function MobileDashboard() {
   const [activeTab, setActiveTab] = useState<'home' | 'analytics' | 'subscriptions'>('home');
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -538,15 +557,62 @@ export default function MobileDashboard() {
               <h2 className="text-2xl font-black text-white">Análisis</h2>
             </div>
             
-            <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg flex flex-col items-center justify-center py-10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-5">
-                <PieChart className="w-40 h-40" />
-              </div>
-              <span className="text-sm font-bold text-white/50 tracking-widest uppercase mb-2">Gastos Totales</span>
-              <h3 className="text-5xl font-black text-white tracking-tighter">
-                S/ {transactions.filter(tx => tx.type === 'out').reduce((sum, tx) => sum + Math.abs(tx.amount), 0).toLocaleString('es-PE', {minimumFractionDigits: 2})}
-              </h3>
-            </div>
+            {(() => {
+              const outTxs = transactions.filter(tx => tx.type === 'out');
+              const totalOut = outTxs.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+              
+              const catTotals: Record<string, number> = {};
+              outTxs.forEach(tx => {
+                const c = getCategory(tx.description);
+                catTotals[c] = (catTotals[c] || 0) + Math.abs(tx.amount);
+              });
+              
+              const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+              
+              let currentAngle = 0;
+              const gradientParts = sortedCats.map(([cat, amount]) => {
+                const pct = (amount / (totalOut || 1)) * 100;
+                const color = CATEGORY_COLORS[cat];
+                const part = `${color} ${currentAngle}% ${currentAngle + pct}%`;
+                currentAngle += pct;
+                return part;
+              });
+
+              return (
+                <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg flex flex-col items-center">
+                  <h3 className="text-sm font-bold text-white/50 tracking-widest uppercase mb-6 self-start">Distribución de Gastos</h3>
+                  
+                  <div className="relative w-48 h-48 mb-8">
+                    <div 
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: gradientParts.length > 0 ? `conic-gradient(${gradientParts.join(', ')})` : '#333' }}
+                    />
+                    <div className="absolute inset-4 bg-[#1a1a1a] rounded-full flex flex-col items-center justify-center">
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Total</span>
+                      <span className="text-xl font-black text-white">S/ {totalOut.toLocaleString('es-PE', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full space-y-3">
+                    {sortedCats.map(([cat, amount]) => {
+                      const pct = Math.round((amount / (totalOut || 1)) * 100);
+                      return (
+                        <div key={cat} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
+                            <span className="text-sm font-bold text-white/80">{cat}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-white/40">{pct}%</span>
+                            <span className="text-sm font-mono text-white">S/ {amount.toLocaleString('es-PE', {minimumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg">
                <h3 className="text-sm font-bold text-white/50 tracking-widest uppercase mb-4">Por Tarjeta</h3>
