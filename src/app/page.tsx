@@ -39,6 +39,7 @@ export default function MobileDashboard() {
   // Estados para Modales
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [paymentAccount, setPaymentAccount] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [manualModal, setManualModal] = useState<'in'|'out'|null>(null);
   const [subModal, setSubModal] = useState(false);
   const [cardDetailModal, setCardDetailModal] = useState<any>(null);
@@ -208,7 +209,8 @@ export default function MobileDashboard() {
       return;
     }
 
-    const debtToPay = Math.abs(paymentAccount.balance);
+    const debtToPay = Number(paymentAmount);
+    if (debtToPay <= 0) return;
 
     await supabase.from('transactions').insert([{
       account_id: sueldoAccount.id, amount: -debtToPay, type: 'out', description: `Pago de Tarjeta ${getCardStyle(paymentAccount.name).title}`, category: 'Transferencia'
@@ -219,7 +221,7 @@ export default function MobileDashboard() {
     }]);
 
     await supabase.from('accounts').update({ balance: Number(sueldoAccount.balance) - debtToPay }).eq('id', sueldoAccount.id);
-    await supabase.from('accounts').update({ balance: 0 }).eq('id', paymentAccount.id);
+    await supabase.from('accounts').update({ balance: Number(paymentAccount.balance) - debtToPay }).eq('id', paymentAccount.id);
 
     setPaymentAccount(null);
     setIsProcessing(false);
@@ -393,7 +395,11 @@ export default function MobileDashboard() {
                     {account.type === 'credito' && (
                       <div className="flex gap-2 mt-3 w-[290px]">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setPaymentAccount(account); }} 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setPaymentAccount(account); 
+                            setPaymentAmount(Math.abs(account.balance).toString());
+                          }} 
                           className={`
                             flex-1 flex items-center justify-center gap-1.5 bg-white/5 border border-white/10 text-white text-[10px] font-bold py-2.5 rounded-xl transition shadow-lg backdrop-blur-md
                             hover:bg-[#1DB954] hover:text-black hover:border-[#1DB954]
@@ -688,9 +694,17 @@ export default function MobileDashboard() {
                 </div>
               </div>
 
-              <div className="text-center mb-8">
-                <span className="text-sm text-white/50">Monto a pagar (Deuda total)</span>
-                <h2 className="text-4xl font-black text-white mt-1">S/ {Math.abs(paymentAccount.balance).toLocaleString('es-PE', {minimumFractionDigits: 2})}</h2>
+              <div className="mb-8">
+                <span className="text-sm text-white/50 text-center block mb-3">Deuda Total: S/ {Math.abs(paymentAccount.balance).toLocaleString('es-PE', {minimumFractionDigits: 2})}</span>
+                <div className="relative max-w-[250px] mx-auto">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 text-2xl font-bold">S/</span>
+                  <input 
+                    type="number" 
+                    value={paymentAmount} 
+                    onChange={e => setPaymentAmount(e.target.value)} 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-3xl font-black text-white text-center focus:outline-none focus:border-[#1DB954]" 
+                  />
+                </div>
               </div>
 
               <button onClick={handlePayCard} disabled={isProcessing} className="w-full py-4 bg-[#1DB954] hover:bg-[#1ed760] text-[#0a0a0a] rounded-2xl font-black transition-colors flex justify-center items-center gap-2 text-lg">
