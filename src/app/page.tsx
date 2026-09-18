@@ -39,7 +39,9 @@ export default function MobileDashboard() {
   // Estados para Modales
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [paymentAccount, setPaymentAccount] = useState<any>(null);
-  const [manualModal, setManualModal] = useState<'in' | 'out' | null>(null);
+  const [manualModal, setManualModal] = useState<'in'|'out'|null>(null);
+  const [subModal, setSubModal] = useState(false);
+  const [subForm, setSubForm] = useState({ name: '', amount: '', billing_day: '', account_id: '' });
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [manualAmount, setManualAmount] = useState('0');
@@ -52,6 +54,11 @@ export default function MobileDashboard() {
 
     const { data: txData } = await supabase.from("transactions").select("*, accounts(name, type)").order("transaction_date", { ascending: false }).limit(25);
     if (txData) setTransactions(txData);
+
+    try {
+      const { data: subsData } = await supabase.from("subscriptions").select("*, accounts(name)").order("billing_day", { ascending: true });
+      if (subsData) setSubscriptions(subsData);
+    } catch(e) {}
     
     setLoading(false);
   };
@@ -222,7 +229,20 @@ export default function MobileDashboard() {
   );
 
   const filteredTransactions = filterCardId ? transactions.filter(tx => tx.account_id === filterCardId) : transactions;
-
+  const handleSaveSubscription = async () => {
+    if (!subForm.name || !subForm.amount || !subForm.billing_day || !subForm.account_id) return;
+    setIsProcessing(true);
+    await supabase.from('subscriptions').insert([{
+      name: subForm.name,
+      amount: Number(subForm.amount),
+      billing_day: Number(subForm.billing_day),
+      account_id: subForm.account_id
+    }]);
+    setSubModal(false);
+    setSubForm({ name: '', amount: '', billing_day: '', account_id: '' });
+    setIsProcessing(false);
+    fetchData();
+  };
   return (
     <div className="min-h-screen relative text-white font-sans pb-28 lg:pb-0 overflow-x-hidden selection:bg-[#1DB954]/30">
       
@@ -517,18 +537,48 @@ export default function MobileDashboard() {
                  </button>
                  <h2 className="text-2xl font-black text-white">Suscripciones</h2>
                </div>
-               <button onClick={() => alert('Próximamente: Modal para crear suscripción')} className="w-10 h-10 bg-[#1DB954]/20 text-[#1DB954] rounded-full flex items-center justify-center">
+               <button onClick={() => setSubModal(true)} className="w-10 h-10 bg-[#1DB954]/20 text-[#1DB954] rounded-full flex items-center justify-center">
                   <Plus className="w-6 h-6" />
                </button>
             </div>
             
-            <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg text-center py-12">
-               <Repeat className="w-16 h-16 mx-auto text-white/20 mb-4" />
-               <h3 className="text-lg font-bold text-white mb-2">No hay suscripciones aún</h3>
-               <p className="text-sm text-white/50 max-w-[250px] mx-auto">
-                 Crea la tabla en Supabase y luego podrás agregar tus pagos recurrentes aquí.
-               </p>
-            </div>
+            {subscriptions.length === 0 ? (
+              <div className="bg-white/5 backdrop-blur-2xl rounded-[32px] p-6 border border-white/10 shadow-lg text-center py-12">
+                 <Repeat className="w-16 h-16 mx-auto text-white/20 mb-4" />
+                 <h3 className="text-lg font-bold text-white mb-2">No hay suscripciones aún</h3>
+                 <p className="text-sm text-white/50 max-w-[250px] mx-auto">
+                   Toca el botón + para agregar tus pagos recurrentes como Netflix o Spotify.
+                 </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {subscriptions.map(sub => {
+                  const today = new Date().getDate();
+                  let daysLeft = sub.billing_day - today;
+                  if (daysLeft < 0) daysLeft += 30; // approx next month
+                  
+                  return (
+                    <div key={sub.id} className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-3xl flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white/50 font-bold text-lg">
+                          {sub.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-lg">{sub.name}</h4>
+                          <p className="text-xs text-white/50">{sub.accounts?.name || 'Tarjeta eliminada'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-white text-lg mb-0.5">S/ {sub.amount.toFixed(2)}</p>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${daysLeft <= 3 ? 'text-[#ef4444]' : 'text-[#1DB954]'}`}>
+                          {daysLeft === 0 ? '¡Hoy!' : `En ${daysLeft} días`}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </motion.section>
         )}
 
@@ -690,6 +740,55 @@ export default function MobileDashboard() {
                 className="w-full py-4 bg-[#1DB954] disabled:bg-white/10 disabled:text-white/30 text-[#0a0a0a] rounded-2xl font-black transition-colors text-lg"
               >
                 {isProcessing ? "Guardando..." : (manualModal === 'in' ? 'Recibir' : 'Pagar')}
+              </button>
+            </motion.div>
+          </>
+        )}
+
+        {/* MODAL: NUEVA SUSCRIPCIÓN */}
+        {subModal && (
+          <>
+            <Backdrop onClick={() => !isProcessing && setSubModal(false)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="fixed bottom-0 inset-x-0 bg-[#121212] rounded-t-[32px] p-6 z-[101] shadow-[0_-10px_50px_rgba(0,0,0,0.5)] border-t border-white/10 flex flex-col">
+              <div className="flex justify-between items-center mb-8">
+                <button onClick={() => setSubModal(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+                <h3 className="font-bold text-white">Agregar Suscripción</h3>
+                <div className="w-9"></div>
+              </div>
+              
+              <div className="space-y-4 mb-8">
+                <div>
+                  <label className="text-xs text-white/50 font-bold uppercase tracking-widest ml-2 mb-1 block">Servicio (ej. Netflix)</label>
+                  <input type="text" value={subForm.name} onChange={e => setSubForm({...subForm, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:border-[#1DB954]" placeholder="Netflix" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-white/50 font-bold uppercase tracking-widest ml-2 mb-1 block">Costo Mensual</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold">S/</span>
+                      <input type="number" value={subForm.amount} onChange={e => setSubForm({...subForm, amount: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-10 text-white focus:outline-none focus:border-[#1DB954]" placeholder="45.00" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 font-bold uppercase tracking-widest ml-2 mb-1 block">Día de cobro</label>
+                    <input type="number" min="1" max="31" value={subForm.billing_day} onChange={e => setSubForm({...subForm, billing_day: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:border-[#1DB954]" placeholder="Día 15" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/50 font-bold uppercase tracking-widest ml-2 mb-1 block">Tarjeta vinculada</label>
+                  <select value={subForm.account_id} onChange={e => setSubForm({...subForm, account_id: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:border-[#1DB954] appearance-none">
+                    <option value="" disabled className="text-black">Selecciona la tarjeta...</option>
+                    {accounts.filter(a => a.type === 'credito' || a.type === 'debito').map(a => (
+                      <option key={a.id} value={a.id} className="text-black">{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button onClick={handleSaveSubscription} disabled={isProcessing || !subForm.name || !subForm.amount || !subForm.billing_day || !subForm.account_id} className="w-full py-4 bg-[#1DB954] disabled:bg-white/10 disabled:text-white/30 text-[#0a0a0a] rounded-2xl font-black transition-colors text-lg">
+                {isProcessing ? "Guardando..." : "Guardar Suscripción"}
               </button>
             </motion.div>
           </>
