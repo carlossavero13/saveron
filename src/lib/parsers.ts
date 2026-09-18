@@ -53,6 +53,21 @@ export function parseBankEmail(from: string, subject: string, bodyText: string):
     return { amount, description, type: 'in', currency, bank: 'BCP' };
   }
 
+  // 2.5. Patrón BCP Pago de Servicios
+  // Ej: "CONSTANCIA DE PAGO DE SERVICIO... Empresa: LUZ DEL SUR SAA ... Importe/Monto: S/ 45.00"
+  if (subject.toUpperCase().includes('PAGO DE SERVICIO') && from.toLowerCase().includes('bcp')) {
+    const empresaMatch = text.match(/Empresa:\s*(.*?)(?:Servicio:|Titular)/i);
+    const description = empresaMatch ? empresaMatch[1].trim() : 'Pago de Servicio BCP';
+    
+    // Tratamos de buscar Importe o Monto
+    const montoMatch = text.match(/(?:Importe|Monto)[\s:]*(S\/|US\$)\s*([\d,.]+)/i);
+    if (montoMatch) {
+      const currency = montoMatch[1] === 'S/' ? 'PEN' : 'USD';
+      const amount = parseFloat(montoMatch[2].replace(/,/g, ''));
+      return { amount, description, type: 'out', currency, bank: 'BCP' };
+    }
+  }
+
   // 3. Patrón Ripley (Basado en correo real)
   // Ej: "...consumo con tu tarjeta Ripley... por S/ 149.94, en PORTA FREEDOM SANTA AN."
   const ripleyRegex = /consumo\s+con\s+tu\s+tarjeta.*?\s+por\s+(S\/|US\$)\s*([\d,.]+),\s+en\s+(.*?)\./i;
