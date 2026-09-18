@@ -9,21 +9,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 const getCardStyle = (name: string) => {
   const n = name || '';
   if (n.includes("BCP") && n.includes("Sueldo")) return { 
-    bg: "bg-gradient-to-br from-orange-500 to-orange-800", text: "text-white", short: "BCP", title: "Cuenta Sueldo", digits: "•••• 4123", cierre: null, pago: null, linea: null 
+    bg: "bg-gradient-to-br from-orange-500 to-orange-800", text: "text-white", short: "BCP", title: "Cuenta Sueldo", digits: "•••• 4123", cierre: null, pago: null, linea: null, tagBg: "bg-orange-500/20", tagText: "text-orange-400"
   };
   if (n.includes("American")) return { 
-    bg: "bg-gradient-to-br from-slate-800 to-blue-900", text: "text-white", short: "AMEX", title: "AMEX LATAM Pass", digits: "•••• 9824", cierre: 22, pago: 18, linea: 6700 
+    bg: "bg-gradient-to-br from-slate-800 to-blue-900", text: "text-white", short: "AMEX", title: "AMEX LATAM Pass", digits: "•••• 9824", cierre: 22, pago: 18, linea: 6700, tagBg: "bg-blue-500/20", tagText: "text-blue-400"
   };
   if (n.includes("VISA")) return { 
-    bg: "bg-gradient-to-br from-indigo-800 to-indigo-950", text: "text-white", short: "VISA", title: "VISA LATAM Pass", digits: "•••• 8278", cierre: 10, pago: 8, linea: 2920 
+    bg: "bg-gradient-to-br from-indigo-800 to-indigo-950", text: "text-white", short: "VISA", title: "VISA LATAM Pass", digits: "•••• 8278", cierre: 10, pago: 8, linea: 2920, tagBg: "bg-indigo-500/20", tagText: "text-indigo-400"
   };
   if (n.includes("Sip")) return { 
-    bg: "bg-gradient-to-br from-pink-700 to-rose-950", text: "text-white", short: "SIP!", title: "Tarjeta Sip!", digits: "•••• 1234", cierre: 28, pago: 25, linea: 3000 
+    bg: "bg-gradient-to-br from-pink-700 to-rose-950", text: "text-white", short: "SIP!", title: "Tarjeta Sip!", digits: "•••• 1234", cierre: 28, pago: 25, linea: 3000, tagBg: "bg-pink-500/20", tagText: "text-pink-400"
   };
   if (n.includes("Ripley")) return { 
-    bg: "bg-gradient-to-br from-purple-800 to-purple-950", text: "text-white", short: "RIPLEY", title: "Ripley Mastercard", digits: "•••• 0709", cierre: 22, pago: 20, linea: 1000 
+    bg: "bg-gradient-to-br from-purple-800 to-purple-950", text: "text-white", short: "RIPLEY", title: "Ripley Mastercard", digits: "•••• 0709", cierre: 22, pago: 20, linea: 1000, tagBg: "bg-purple-500/20", tagText: "text-purple-400"
   };
-  return { bg: "bg-gradient-to-br from-gray-700 to-gray-900", text: "text-white", short: "CARD", title: n, digits: "•••• 0000", cierre: null, pago: null, linea: null };
+  return { bg: "bg-gradient-to-br from-gray-700 to-gray-900", text: "text-white", short: "CARD", title: n, digits: "•••• 0000", cierre: null, pago: null, linea: null, tagBg: "bg-white/10", tagText: "text-white/70" };
 };
 
 export default function MobileDashboard() {
@@ -504,7 +504,7 @@ export default function MobileDashboard() {
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] text-white/50">{txDate.toLocaleDateString('es-PE', {day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit'})}</span>
                         {!filterCardId && (
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm bg-white/10 text-white/70 uppercase`}>
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-sm ${cardStyle.tagBg || 'bg-white/10'} ${cardStyle.tagText || 'text-white/70'} uppercase`}>
                             {cardStyle.short}
                           </span>
                         )}
